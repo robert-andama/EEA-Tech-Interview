@@ -40,12 +40,12 @@ data class MovieDetailsResults(
     @Json(name = "vote_average")
     val voteAverage: Double,
     @Json(name = "vote_count")
-    val voteCount: Int
+    val voteCount: Int,
 ) {
     @JsonClass(generateAdapter = true)
     data class Genre(
         val id: Int,
-        val name: String
+        val name: String,
     )
 
     @JsonClass(generateAdapter = true)
@@ -55,14 +55,14 @@ data class MovieDetailsResults(
         val logoPath: String?,
         val name: String,
         @Json(name = "origin_country")
-        val originCountry: String
+        val originCountry: String,
     )
 
     @JsonClass(generateAdapter = true)
     data class ProductionCountry(
         @Json(name = "iso_3166_1")
         val iso31661: String,
-        val name: String
+        val name: String,
     )
 
     @JsonClass(generateAdapter = true)
@@ -71,6 +71,6 @@ data class MovieDetailsResults(
         val englishName: String,
         @Json(name = "iso_639_1")
         val iso6391: String,
-        val name: String
+        val name: String,
     )
 }

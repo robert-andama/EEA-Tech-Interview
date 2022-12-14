@@ -1,24 +1,25 @@
 package com.engie.eea_tech_interview.network
 
 import android.content.Context
+import com.engie.eea_tech_interview.api.MovieApiService
+import com.engie.eea_tech_interview.utils.AppConstants.CACHE_SIZE
+import com.engie.eea_tech_interview.utils.AppConstants.CONNECT_TIME_OUT
+import com.engie.eea_tech_interview.utils.AppConstants.READ_TIME_OUT
+import com.engie.eea_tech_interview.utils.AppConstants.WRITE_TIME_OUT
 import com.squareup.moshi.Moshi
 import okhttp3.Cache
-import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Converter
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import java.util.concurrent.TimeUnit
 
-const val CACHE_SIZE: Long = 10 * 1024 * 1024 // 10MB
-const val READ_TIME_OUT: Long = 30
-const val WRITE_TIME_OUT: Long = 10
-const val CONNECT_TIME_OUT: Long = 10
 
-fun createRetrofit(
+fun provideRetrofit(
     baseUrl: String,
+    client: OkHttpClient,
     converterFactory: Converter.Factory,
-    client: OkHttpClient
 ): Retrofit {
     return Retrofit.Builder()
         .baseUrl(baseUrl)
@@ -27,16 +28,28 @@ fun createRetrofit(
         .build()
 }
 
-fun createOkHttpClient(context: Context): OkHttpClient {
-
-    val clientBuilder = OkHttpClient.Builder()
+fun provideOkHttpClient(
+    context: Context,
+    authInterceptor: AuthInterceptor
+): OkHttpClient {
+    return OkHttpClient()
+        .newBuilder()
+        .addInterceptor(authInterceptor)
         .connectTimeout(CONNECT_TIME_OUT, TimeUnit.SECONDS)
         .writeTimeout(WRITE_TIME_OUT, TimeUnit.SECONDS)
         .readTimeout(READ_TIME_OUT, TimeUnit.SECONDS)
         .cache(Cache(context.cacheDir, CACHE_SIZE))
-
-    return clientBuilder.build()
+        .build()
 }
 
-fun createMoshiConverter(): Converter.Factory =
+fun provideLoggingInterceptor(): HttpLoggingInterceptor {
+    val logger = HttpLoggingInterceptor()
+    logger.level = HttpLoggingInterceptor.Level.BASIC
+    return logger
+}
+
+fun provideMoshiConverter(): Converter.Factory =
     MoshiConverterFactory.create(Moshi.Builder().build())
+
+fun provideMovieApi(retrofit: Retrofit): MovieApiService =
+    retrofit.create(MovieApiService::class.java)

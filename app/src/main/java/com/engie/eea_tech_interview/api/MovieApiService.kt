@@ -9,20 +9,13 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface MovieApiService {
+
     @GET("search/movie")
-    fun getMovies(
-        @Query("api_key") apiKey: String,
-        @Query("query") query: String,
-    ): Call<SearchResult>
+    suspend fun getMovies(@Query("query") query: String): SearchResult
 
     @GET("genre/movie/list")
-    fun getGenre(
-        @Query("api_key") apiKey: String
-    ): Call<GenreResult>
+    fun getGenre(@Query("api_key") apiKey: String): Call<GenreResult>
 
     @GET("movie/{movie_id}")
-    fun getMovieDetails(
-        @Path("movie_id") userId: Int,
-        @Query("api_key") apiKey: String,
-    ): Call<MovieDetailsResults>
+    suspend fun getMovieDetails(@Path("movie_id") movieId: Int): MovieDetailsResults
 }

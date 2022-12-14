@@ -11,7 +11,8 @@ import com.engie.eea_tech_interview.model.Movie
 import com.engie.eea_tech_interview.utils.AppConstants
 
 
-class MovieAdapter(private val clickListener: (Movie) -> Unit): RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class MovieAdapter(private val clickListener: (Movie) -> Unit) :
+    RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     var dataList: List<Movie> = emptyList<Movie>().toMutableList()
         set(value) {
@@ -19,7 +20,10 @@ class MovieAdapter(private val clickListener: (Movie) -> Unit): RecyclerView.Ada
             notifyDataSetChanged()
         }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerViewAdapterViewHolder {
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int,
+    ): RecyclerViewAdapterViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         val binding = RowMovieBinding.inflate(inflater, parent, false)
         return RecyclerViewAdapterViewHolder(binding)
@@ -31,7 +35,8 @@ class MovieAdapter(private val clickListener: (Movie) -> Unit): RecyclerView.Ada
 
     override fun getItemCount(): Int = dataList.size
 
-    inner class RecyclerViewAdapterViewHolder(private val binding: RowMovieBinding) : RecyclerView.ViewHolder(binding.root) {
+    inner class RecyclerViewAdapterViewHolder(private val binding: RowMovieBinding) :
+        RecyclerView.ViewHolder(binding.root) {
         fun bind(movie: Movie, clickListener: (Movie) -> Unit) {
             loadImageUrl(binding.imageViewCover, movie.posterPath)
             binding.movieName.text = movie.title
@@ -41,6 +46,7 @@ class MovieAdapter(private val clickListener: (Movie) -> Unit): RecyclerView.Ada
     }
 
     private fun loadImageUrl(view: AppCompatImageView, url: String?) {
+        if (!url.isNullOrEmpty())
             Glide.with(view.context)
                 .load(AppConstants.IMAGE_ENDPOINT_PREFIX + url)
                 .placeholder(R.drawable.ic_launcher_foreground)

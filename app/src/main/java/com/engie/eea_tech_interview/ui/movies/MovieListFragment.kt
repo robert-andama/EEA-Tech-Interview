@@ -1,102 +1,106 @@
 package com.engie.eea_tech_interview.ui.movies
 
+import android.content.Context.INPUT_METHOD_SERVICE
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.engie.eea_tech_interview.R
-import com.engie.eea_tech_interview.api.MovieApiService
 import com.engie.eea_tech_interview.databinding.FragmentMovieListBinding
 import com.engie.eea_tech_interview.model.Movie
 import com.engie.eea_tech_interview.model.SearchResult
+import com.engie.eea_tech_interview.network.Resource
+import com.engie.eea_tech_interview.network.Status
 import com.engie.eea_tech_interview.ui.adapter.MovieAdapter
-import com.engie.eea_tech_interview.utils.AppConstants.MOVIE_API_KEY
-import com.engie.eea_tech_interview.utils.AppConstants.SEARCH_QUERY
-import org.koin.android.ext.android.inject
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import retrofit2.Retrofit
+import com.engie.eea_tech_interview.viewmodel.MovieViewModel
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.koin.dsl.module
 
 
 class MovieListFragment : Fragment() {
 
-    private var _binding: FragmentMovieListBinding? = null
-    private val binding get() = _binding!!
-
-    private val retrofit: Retrofit by inject()
-    private val movieApiService: MovieApiService = retrofit.create(MovieApiService::class.java)
+    private val movieViewModel : MovieViewModel by viewModel()
+    private lateinit var binding: FragmentMovieListBinding
     private var adapter: MovieAdapter = MovieAdapter { flower -> adapterOnClick(flower) }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
-
-        _binding = FragmentMovieListBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        binding.recyclerviewMovies.adapter = adapter
-        val staggeredGridLayoutManager = StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL)
-        binding.recyclerviewMovies.layoutManager = staggeredGridLayoutManager
-
-        getMovies(movieApiService)
-        binding.refreshMovieList.setOnRefreshListener {
-            getMovies(movieApiService)
+    private val observer = Observer<Resource<SearchResult>> {
+        when (it.status) {
+            Status.SUCCESS -> getPopularMovies(it)
+            Status.ERROR -> showNoDataFound(adapter.dataList.isEmpty())
+            Status.LOADING -> showLoading(true)
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View {
+        super.onCreateView(inflater, container, savedInstanceState)
+        binding = DataBindingUtil.inflate(inflater, R.layout.fragment_movie_list, container, false)
+        showNoDataFound(true)
+        setupRecyclerView()
+        observeMovieQuery()
+        return binding.root
+    }
+
+    private fun observeMovieQuery() {
+        binding.viewModel = movieViewModel
+        movieViewModel.movieQuery.observe(viewLifecycleOwner, observer)
+    }
+
+    private fun closeKeyBoard() {
+        try {
+            val imm: InputMethodManager? =
+                requireActivity().getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager?
+            imm?.hideSoftInputFromWindow(requireActivity().currentFocus?.windowToken, 0)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun setupRecyclerView() {
+        binding.recyclerviewMovies.adapter = adapter
+        val staggeredGridLayoutManager = StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL)
+        binding.recyclerviewMovies.layoutManager = staggeredGridLayoutManager
     }
 
     private fun adapterOnClick(movie: Movie) {
-//        val intent = Intent(this, MovieDetails()::class.java)
-//        intent.putExtra("movie", movie.id)
-//        startActivity(intent)
         val bundle = Bundle()
         bundle.putInt("movie", movie.id)
         findNavController().navigate(R.id.action_MovieListFragment_to_MovieDetailsFragment, bundle)
     }
 
-    private fun getMovies(movieApiService: MovieApiService) {
-        movieApiService.getMovies(MOVIE_API_KEY, SEARCH_QUERY)
-            .enqueue(object : Callback<SearchResult> {
-                override fun onResponse(
-                    call: Call<SearchResult>,
-                    response: Response<SearchResult>,
-                ) {
-                    binding.refreshMovieList.isRefreshing = false
-                    val searchResult = response.body()
-                    adapter.dataList = searchResult!!.results
+    private  fun getPopularMovies(it: Resource<SearchResult>) {
 
-                    showNoDataFound(adapter.dataList.isEmpty())
-                    println("EEA TECH INTERVIEW :: $searchResult")
-                    println("EEA TECH INTERVIEW :: ${searchResult.results}")
-                    Log.d("EEA TECH INTERVIEW",
-                        searchResult.results?.joinToString(separator = ",").orEmpty())
-                }
+        showLoading(false)
+        showNoDataFound(false)
+        val searchResult = it.data
+        adapter.dataList = searchResult!!.results
+    }
 
-                override fun onFailure(call: Call<SearchResult>, t: Throwable) {
-                    Log.e("EEA TECH INTERVIEW", t.localizedMessage.orEmpty())
-                }
-            })
+    private fun showLoading(show: Boolean) = if (show) {
+        closeKeyBoard()
+        binding.movieLoader.visibility = View.VISIBLE
+        binding.recyclerviewMovies.visibility = View.GONE
+    } else {
+        closeKeyBoard()
+        binding.movieLoader.visibility = View.GONE
+        binding.recyclerviewMovies.visibility = View.VISIBLE
     }
 
     private fun showNoDataFound(show: Boolean) = if (show) {
+        showLoading(false)
         binding.emptyMovieState.visibility = View.VISIBLE
         binding.recyclerviewMovies.visibility = View.GONE
     } else {
+        showLoading(false)
         binding.emptyMovieState.visibility = View.GONE
         binding.recyclerviewMovies.visibility = View.VISIBLE
     }
